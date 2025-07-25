@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Packages
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+env/
+venv/
+.venv/
+ENV/
+
+# dotenv
+.env
+.env.*
+!.env.example
+
+# Flask instance folder
+instance/
+
+# IDEs
+.vscode/
+.idea/
+*.iml
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Node.js
+node_modules/
+frontend/node_modules/
+
+# React build output
+build/
+frontend/build/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
