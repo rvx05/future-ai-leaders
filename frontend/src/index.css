@@ -13,6 +13,7 @@
 
 .rotate-y-180 {
   transform: rotateY(180deg);
+  backface-visibility: hidden;
 }
 
 /* Smooth scrolling */

@@ -138,17 +138,17 @@ export const FlashcardsPage: React.FC = () => {
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">Export</h3>
               
               <div className="space-y-3">
-                <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 text-gray-600 dark:text-gray-400 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
                   <Download className="h-4 w-4" />
                   <span>Export as Anki Deck</span>
                 </button>
                 
-                <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 text-gray-600 dark:text-gray-400 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
                   <Download className="h-4 w-4" />
                   <span>Export as CSV</span>
                 </button>
                 
-                <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 text-gray-600 dark:text-gray-400 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
                   <Download className="h-4 w-4" />
                   <span>Export as PDF</span>
                 </button>
