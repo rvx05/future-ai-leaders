@@ -23,6 +23,8 @@ interface AuthContextType {
   updateProfile: (profileData: any) => Promise<void>;
   loading: boolean;
   isAuthenticated: boolean;
+  isGuest: boolean;
+  continueAsGuest: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,6 +44,10 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isGuest, setIsGuest] = useState(false);
+  const continueAsGuest = () => {
+    setIsGuest(true);
+  };
 
   // Check if user is authenticated on app start
   useEffect(() => {
@@ -57,6 +63,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
+      } else { //not authenticated
+        setUser(null);
       }
     } catch (error) {
       console.error('Auth check failed:', error);
@@ -67,6 +75,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const login = (userData: User) => {
     setUser(userData);
+    setIsGuest(false); 
   };
 
   const logout = async () => {
@@ -79,6 +88,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       console.error('Logout failed:', error);
     } finally {
       setUser(null);
+      setIsGuest(false);
     }
   };
 
@@ -112,7 +122,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     logout,
     updateProfile,
     loading,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user || isGuest,
+    isGuest,
+    continueAsGuest,
   };
 
   return (

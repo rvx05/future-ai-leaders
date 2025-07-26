@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
 
 interface LoginProps {
   onLogin: (user: any) => void;
 }
 
 export const Login: React.FC<LoginProps> = ({ onLogin }) => {
+  const { continueAsGuest } = useAuth();
+  const navigate = useNavigate();
+
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -202,12 +207,17 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
           {isLogin && (
             <div className="text-center">
-              <Link
-                to="/"
+              <button
+                type="button"
+                onClick={() => {
+                  continueAsGuest();
+                  navigate('/');
+                }}//</div>]
+                //</form>to="/"
                 className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400"
               >
                 Continue as guest (limited features)
-              </Link>
+              </button>
             </div>
           )}
         </form>
