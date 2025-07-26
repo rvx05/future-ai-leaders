@@ -7,15 +7,23 @@ pydantic==2.5.0
 Flask==3.0.0
 Flask-CORS==4.0.0
 Flask-SocketIO==5.3.6
+Flask-Login==0.6.3
+Flask-WTF==1.2.1
 gunicorn==21.2.0
 
 # Google AI/Gemini
-google-generativeai==0.3.2
-google-cloud-aiplatform==1.38.0
+google-generativeai>=0.8.0
+google-adk>=0.1.0
+
+# Additional dependencies for agents
+firecrawl-py==1.0.0
+faiss-cpu>=1.8.0
+sentence-transformers>=2.7.0
+beautifulsoup4==4.12.2
 
 # Data processing
-pandas==2.1.4
-numpy==1.25.2
+numpy>=1.26.0
+# pandas>=2.2.0
 
 # Utilities
 rich==13.7.0

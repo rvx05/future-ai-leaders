@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { CreditCard, FileText, Upload, Calendar, TrendingUp, Clock, Target } from 'lucide-react';
+import { CreditCard, FileText, Upload, Calendar, TrendingUp, Clock, Target, MessageCircle } from 'lucide-react';
 import { ProgressTracker } from '../components/ProgressTracker';
 import { useApi } from '../hooks/useApi';
 
@@ -17,6 +17,13 @@ export const Dashboard: React.FC = () => {
   }, [callApi]);
 
   const quickActions = [
+    {
+      title: 'AI Chat Assistant',
+      description: 'Chat with your AI tutor for instant help',
+      icon: MessageCircle,
+      link: '/chat',
+      color: 'bg-indigo-500',
+    },
     {
       title: 'Generate Flashcards',
       description: 'Create AI-powered flashcards from your notes',
@@ -115,7 +122,7 @@ export const Dashboard: React.FC = () => {
       {/* Quick Actions */}
       <div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
           {quickActions.map((action) => (
             <Link
               key={action.title}

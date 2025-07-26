@@ -24,18 +24,15 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 # Copy the entire src folder
 COPY src/ ./src/
 
 # Copy built React frontend from previous stage: flatten static assets
 RUN rm -rf src/static
-# Copy index.html
-COPY --from=frontend-build /frontend/build/index.html ./src/static/index.html
-# Copy JS and CSS bundles
-COPY --from=frontend-build /frontend/build/static/js ./src/static/js
-COPY --from=frontend-build /frontend/build/static/css ./src/static/css
+# Copy all build artifacts from frontend
+COPY --from=frontend-build /frontend/build/ ./src/static/
 
 # Create a non-root user
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
@@ -45,4 +42,4 @@ USER appuser
 EXPOSE 5000
 
 # Default command to run Flask app
-CMD ["python", "src/app.py"]
+CMD ["python", "src/main.py"]
