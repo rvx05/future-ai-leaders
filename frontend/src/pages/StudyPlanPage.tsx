@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
 import { StudyPlanCalendar } from '../components/StudyPlanCalendar';
 
+interface StudyPlan {
+  totalDays: number;
+  schedule: Array<{ date: string; subject: string; topic: string; duration: number; }>;
+  milestones: Array<{ date: string; title: string; }>;
+}
+
 export const StudyPlanPage: React.FC = () => {
-  const [studyPlan, setStudyPlan] = useState(null);
+  const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
   const [formData, setFormData] = useState({
     examDate: '',
     studyHoursPerDay: 2,
@@ -57,10 +63,10 @@ export const StudyPlanPage: React.FC = () => {
     <div className="space-y-8">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          Study Plan Generator
+          Your Personalized Study Plan
         </h1>
         <p className="text-lg text-gray-600 dark:text-gray-400">
-          Create a personalized study schedule based on your goals and timeline
+          Let's map out your path to success together!
         </p>
       </div>
 

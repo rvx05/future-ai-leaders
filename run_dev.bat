@@ -1,7 +1,7 @@
 @echo off
 REM Development script to run the Flask app locally on Windows
 
-echo 🚀 Starting Agentic AI App in development mode...
+echo 🚀 Starting Study Buddy in development mode...
 
 REM Set environment variables
 set FLASK_APP=src/main.py

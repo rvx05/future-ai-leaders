@@ -1,13 +1,30 @@
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
-import { Send, Bot, User, Loader2, RefreshCw, Eye, EyeOff } from "lucide-react"
+import { Send, Bot, User, Loader2, RefreshCw, Eye, EyeOff, Brain } from "lucide-react"
 import { useAgenticAI } from "../hooks/useAgenticAi"
 
 export const AgenticChat: React.FC = () => {
   const [input, setInput] = useState("")
   const [showPlan, setShowPlan] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { messages, loading, error, sendMessage, clearMessages } = useAgenticAI()
+    const { messages, loading, error, sendMessage, clearMessages } = useAgenticAI()
+  const [placeholder, setPlaceholder] = useState('Ask me anything about your course materials...')
+
+  const placeholders = [
+    'Summarize my notes on photosynthesis...',
+    'Create 10 flashcards for my history exam.',
+    'Quiz me on the key concepts of calculus.',
+    'Help me build a study plan for next week.',
+    'Explain the concept of recursion in simple terms.',
+  ]
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const randomIndex = Math.floor(Math.random() * placeholders.length)
+      setPlaceholder(placeholders[randomIndex])
+    }, 5000) // Change placeholder every 5 seconds
+    return () => clearInterval(interval)
+  }, [])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -36,8 +53,8 @@ export const AgenticChat: React.FC = () => {
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center space-x-2">
-          <Bot className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">AI Study Assistant</h2>
+          <Brain className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Study Buddy Assistant</h2>
         </div>
         <div className="flex items-center space-x-2">
           <button
@@ -81,7 +98,7 @@ export const AgenticChat: React.FC = () => {
                 <div
                   className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                     message.role === "user"
-                      ? "bg-blue-600 text-white"
+                      ? "bg-blue-500 text-white"
                       : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
                   }`}
                 >
@@ -89,46 +106,23 @@ export const AgenticChat: React.FC = () => {
                 </div>
 
                 <div
-                  className={`rounded-lg p-3 ${
+                  className={`rounded-lg p-3 shadow-sm ${
                     message.role === "user"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white"
+                      ? "bg-blue-500 text-white"
+                      : "bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   }`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  <p className="text-xs opacity-70 mt-1">{message.timestamp.toLocaleTimeString()}</p>
+                  <p className="text-xs opacity-70 mt-1 text-right">{message.timestamp.toLocaleTimeString()}</p>
                 </div>
               </div>
             </div>
-
-            {/* Show execution details for assistant messages */}
-            {message.role === "assistant" && showPlan && (message.plan || message.execution_results) && (
-              <div className="ml-10 space-y-2">
-                {message.plan && message.plan.length > 0 && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-700">
-                    <h4 className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">Execution Plan:</h4>
-                    <div className="space-y-1">
-                      {message.plan.map((task: any, index: number) => (
-                        <div key={task.id || index} className="text-xs text-blue-800 dark:text-blue-400">
-                          {index + 1}. {task.description} ({task.tool})
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {message.execution_results && message.execution_results.length > 0 && (
-                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-700">
-                    <h4 className="text-sm font-medium text-green-900 dark:text-green-300 mb-2">Execution Results:</h4>
-                    <div className="space-y-1">
-                      {message.execution_results.map((result: any, index: number) => (
-                        <div key={result.task_id || index} className="text-xs text-green-800 dark:text-green-400">
-                          Task {result.task_id}: {result.status}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+            {showPlan && message.plan && (
+              <div className="flex justify-start">
+                <div className="ml-10 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg w-[calc(80%-40px)]">
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Execution Plan:</p>
+                  <pre className="text-xs text-gray-500 dark:text-gray-400 whitespace-pre-wrap font-mono bg-gray-100 dark:bg-gray-800 p-2 rounded">{JSON.stringify(message.plan, null, 2)}</pre>
+                </div>
               </div>
             )}
           </div>
@@ -137,13 +131,14 @@ export const AgenticChat: React.FC = () => {
         {loading && (
           <div className="flex justify-start">
             <div className="flex items-start space-x-2 max-w-[80%]">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                <Bot className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+              <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                <Bot className="h-4 w-4" />
               </div>
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
-                <div className="flex items-center space-x-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-gray-600 dark:text-gray-300" />
-                  <span className="text-sm text-gray-600 dark:text-gray-300">AI is thinking...</span>
+              <div className="rounded-lg p-3 shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                <div className="flex items-center space-x-1">
+                  <span className="h-2 w-2 bg-blue-500 rounded-full animate-pulse delay-0"></span>
+                  <span className="h-2 w-2 bg-blue-500 rounded-full animate-pulse delay-150"></span>
+                  <span className="h-2 w-2 bg-blue-500 rounded-full animate-pulse delay-300"></span>
                 </div>
               </div>
             </div>
@@ -167,8 +162,8 @@ export const AgenticChat: React.FC = () => {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask me anything about your studies..."
-            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+            placeholder={placeholder}
+            className="w-full px-4 py-2 border-t border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-shadow"
             disabled={loading}
           />
           <button

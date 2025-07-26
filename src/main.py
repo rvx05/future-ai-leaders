@@ -1,5 +1,5 @@
 """
-Agentic AI App - Main Flask Application
+Study Buddy - Main Flask Application
 Hackathon Template for Google Gemini Integration
 
 This integrates the core agentic architecture:
@@ -14,15 +14,20 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 
 # Import our agentic modules
-from planner import AgentPlanner
-from executor import AgentExecutor
-from memory import AgentMemory
+from .planner import AgentPlanner
+from .executor import AgentExecutor
+from .memory import AgentMemory
 
-# Load environment variables
-load_dotenv()
+from pathlib import Path
+
+# Explicitly load the .env file from the parent directory
+env_path = Path('.') / '.env'
+load_dotenv(dotenv_path=env_path)
+
+
 
 app = Flask(__name__)
-CORS(app)
+
 
 # Initialize agentic components
 gemini_api_key = os.getenv('GEMINI_API_KEY')
@@ -67,6 +72,8 @@ def health_check():
         'memory_summary': memory.get_memory_summary() if memory else None
     })
 
+CORS(app, supports_credentials=True)
+
 @app.route('/api/agent', methods=['POST'])
 def agentic_workflow():
     """
@@ -97,31 +104,24 @@ def agentic_workflow():
         # Step 3: Plan sub-tasks
         plan = planner.create_plan(user_input, context)
         optimized_plan = planner.optimize_plan(plan)
-        
-        # Step 4: Execute tasks (call tools/APIs including Gemini)
-        execution_results = executor.execute_plan(optimized_plan, context)
-        
-        # Step 5: Generate final response
-        final_response = executor.synthesize_results(execution_results, user_input)
-        
-        # Store the complete interaction in memory
-        memory.store_interaction(
-            user_input=user_input,
-            agent_response=final_response,
-            plan=optimized_plan,
-            execution_results=execution_results
-        )
-        
-        return jsonify({
-            'response': final_response,
-            'plan': optimized_plan,
-            'execution_results': execution_results,
-            'memory_context_used': bool(context.get('recent_interactions')),
-            'timestamp': None
-        })
-        
+
+        # Step 4: Execute tasks
+        if optimized_plan:
+            execution_results = executor.execute_plan(optimized_plan, context)
+            # Step 5: Generate final response
+            final_response = executor.synthesize_results(execution_results, user_input)
+        else:
+            # If no plan is needed, generate a direct response
+            final_response = executor.synthesize_results([], user_input)
+
+        # Step 6: Store the full interaction in memory
+        memory.store_interaction(user_input, final_response, optimized_plan, execution_results if optimized_plan else [])
+
+        return jsonify({'response': final_response})
+
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        app.logger.error(f"Error in agentic workflow: {e}", exc_info=True)
+        return jsonify({'error': 'An internal error occurred.'}), 500
 
 @app.route('/api/chat', methods=['POST'])
 def simple_chat():
@@ -176,7 +176,7 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('DEBUG', 'True').lower() == 'true'
     
-    print("🚀 Starting Agentic AI App...")
+    print("🚀 Starting Study Buddy...")
     print(f"🔧 Gemini API configured: {bool(gemini_api_key)}")
     print(f"🧠 Components initialized: Planner={planner is not None}, Executor={executor is not None}, Memory={memory is not None}")
     print(f"🌐 Server running on port {port}")

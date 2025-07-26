@@ -25,10 +25,10 @@ export const FlashcardsPage: React.FC = () => {
     <div className="space-y-8">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          Flashcards
+          Boost Your Memory with Flashcards
         </h1>
         <p className="text-lg text-gray-600 dark:text-gray-400">
-          Master your subjects with AI-generated flashcards
+          Create, review, and master your subjects with a little help from your AI buddy.
         </p>
       </div>
 

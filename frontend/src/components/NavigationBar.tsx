@@ -28,7 +28,7 @@ export const NavigationBar: React.FC = () => {
           {/* Logo - hide text on mobile */}
           <div className="flex items-center space-x-3">
             <Brain className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-            <span className="hidden sm:block text-xl font-bold text-gray-900 dark:text-white">AI Study Buddy</span>
+            <span className="hidden sm:block text-xl font-bold text-gray-900 dark:text-white">Study Buddy</span>
           </div>
 
           {/* Navigation items */}

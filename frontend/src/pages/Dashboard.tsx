@@ -2,6 +2,7 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { AgenticChat } from "../components/AgenticChat"
 import { ProgressTracker } from "../components/ProgressTracker"
+import { DailyMotivation } from "../components/DailyMotivation"
 import { BookOpen, Clock, Target, TrendingUp, Calendar, FileText, Upload } from "lucide-react"
 
 interface StudyStats {
@@ -45,12 +46,15 @@ export const Dashboard: React.FC = () => {
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Welcome back to your AI Study Buddy!
+            Welcome back to Study Buddy!
           </h1>
-          <p className="text-gray-600 dark:text-gray-300">
-            Let's continue your learning journey. Here's your progress overview.
+          <p className="text-lg text-gray-600 dark:text-gray-300">
+            Your personal AI study companion.
           </p>
         </div>
+
+        {/* Daily Motivation */}
+        <DailyMotivation />
 
         {/* Main Content Grid - Responsive layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

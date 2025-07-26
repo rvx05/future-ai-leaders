@@ -1,6 +1,6 @@
-# Agentic AI App Hackathon Template
+# Study Buddy - Your AI Study Companion
 
-Welcome! This repository is your starting point for the **Agentic AI App Hackathon**. It includes:
+Welcome! This repository contains the source code for **Study Buddy**, an AI-powered study companion. It includes:
 
 - A consistent folder structure  
 - An environment spec (`environment.yml` or `Dockerfile`)  

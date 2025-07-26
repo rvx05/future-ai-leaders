@@ -1,17 +1,19 @@
 # Core dependencies
-python-dotenv==1.0.0
+python-dotenv==1.0.1
 requests==2.31.0
+beautifulsoup4==4.12.3
 pydantic==2.5.0
 
 # Flask web framework
 Flask==3.0.0
-Flask-CORS==4.0.0
+Flask-CORS==4.0.1
 Flask-SocketIO==5.3.6
 gunicorn==21.2.0
 
 # Google AI/Gemini
 google-generativeai==0.3.2
-google-cloud-aiplatform==1.38.0
+google-cloud-aiplatform==1.58.0
+gunicorn
 
 # Data processing
 pandas==2.1.4

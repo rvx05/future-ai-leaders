@@ -2,18 +2,26 @@ import React, { useState } from 'react';
 import { FileUploadInput } from '../components/FileUploadInput';
 import { CourseForm } from '../components/CourseForm';
 
+interface CourseInfo {
+  instructor: string;
+  courseCode: string;
+  institution: string;
+  frequency: string;
+  description?: string;
+}
+
 export const UploadPage: React.FC = () => {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [courseInfo, setCourseInfo] = useState(null);
+  const [courseInfo, setCourseInfo] = useState<CourseInfo | null>(null);
 
   return (
     <div className="space-y-8">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          Upload Course Materials
+          Add Your Course Materials
         </h1>
         <p className="text-lg text-gray-600 dark:text-gray-400">
-          Add your course content to generate personalized study materials
+          Let's get your notes and documents ready for your AI Study Buddy.
         </p>
       </div>
 
@@ -23,7 +31,7 @@ export const UploadPage: React.FC = () => {
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
             Course Information
           </h2>
-          <CourseForm onSubmit={setCourseInfo} />
+          <CourseForm onSubmit={(info) => setCourseInfo(info)} />
         </div>
 
         {/* File Upload */}
