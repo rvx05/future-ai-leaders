@@ -1,206 +1,139 @@
 import type React from "react"
-import { useEffect } from "react"
-import { Link } from "react-router-dom"
-import { CreditCard, FileText, Upload, Calendar, TrendingUp, Clock, Target } from "lucide-react"
-import { ProgressTracker } from "../components/ProgressTracker"
+import { useEffect, useState } from "react"
 import { AgenticChat } from "../components/AgenticChat"
-import { useApi } from "../hooks/useApi"
+import { ProgressTracker } from "../components/ProgressTracker"
+import { BookOpen, Clock, Target, TrendingUp, Calendar, FileText, Upload } from "lucide-react"
+
+interface StudyStats {
+  totalHours: number
+  completedSessions: number
+  streak: number
+  averageScore: number
+}
 
 export const Dashboard: React.FC = () => {
-  const {
-    data: progressData,
-    loading,
-    callApi,
-  } = useApi<{
-    weeklyProgress: number
-    overallProgress: number
-    studyStreak: number
-    totalStudyTime: number
-  }>()
+  const [studyStats, setStudyStats] = useState<StudyStats>({
+    totalHours: 0,
+    completedSessions: 0,
+    streak: 0,
+    averageScore: 0,
+  })
 
   useEffect(() => {
-    // Try to get real data from backend, fallback to mock data
-    callApi("/api/memory").catch(() => {
-      // Fallback to mock data if backend is not available
-      const mockData = {
-        weeklyProgress: 75,
-        overallProgress: 60,
-        studyStreak: 7,
-        totalStudyTime: 45,
-      }
-      // Set mock data manually for display
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0)
+
+    // Mock data for demonstration
+    setStudyStats({
+      totalHours: 24.5,
+      completedSessions: 12,
+      streak: 7,
+      averageScore: 85,
     })
-  }, [callApi])
+  }, [])
 
   const quickActions = [
-    {
-      title: "Generate Flashcards",
-      description: "Create AI-powered flashcards from your notes",
-      icon: CreditCard,
-      link: "/flashcards",
-      color: "bg-blue-500",
-    },
-    {
-      title: "Practice Exam",
-      description: "Test your knowledge with custom quizzes",
-      icon: FileText,
-      link: "/exam",
-      color: "bg-emerald-500",
-    },
-    {
-      title: "Upload Content",
-      description: "Add new course materials",
-      icon: Upload,
-      link: "/upload",
-      color: "bg-purple-500",
-    },
-    {
-      title: "Study Plan",
-      description: "Create personalized study schedules",
-      icon: Calendar,
-      link: "/study-plan",
-      color: "bg-orange-500",
-    },
+    { icon: BookOpen, label: "Start Study Session", color: "bg-blue-500", href: "/flashcards" },
+    { icon: FileText, label: "Take Practice Exam", color: "bg-green-500", href: "/exam" },
+    { icon: Upload, label: "Upload Materials", color: "bg-purple-500", href: "/upload" },
+    { icon: Calendar, label: "View Study Plan", color: "bg-orange-500", href: "/study-plan" },
   ]
 
   return (
-    <div className="space-y-8">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">Welcome to AI Study Buddy</h1>
-        <p className="text-xl text-gray-600 dark:text-gray-400">
-          Your intelligent learning companion powered by Agentic AI
-        </p>
-      </div>
-
-      {/* AI Chat Interface */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Chat with your AI Study Assistant</h2>
-          <AgenticChat />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      <div className="container mx-auto px-4 py-8">
+        {/* Welcome Section */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Welcome back to your AI Study Buddy!
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300">
+            Let's continue your learning journey. Here's your progress overview.
+          </p>
         </div>
 
-        <div className="space-y-6">
-          {/* Progress Overview */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Progress Overview</h3>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center">
-                <TrendingUp className="h-6 w-6 text-blue-500" />
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Weekly Progress</p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-white">
-                    {loading ? "..." : `${progressData?.weeklyProgress || 75}%`}
-                  </p>
-                </div>
+        {/* Main Content Grid - Responsive layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* AI Chat Section - Full width on mobile, 2/3 on desktop */}
+          <div className="lg:col-span-2">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 h-[600px] lg:h-[800px]">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">AI Study Assistant</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                  Ask questions, get study help, or generate practice materials
+                </p>
               </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center">
-                <Target className="h-6 w-6 text-emerald-500" />
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Overall Progress</p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-white">
-                    {loading ? "..." : `${progressData?.overallProgress || 60}%`}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center">
-                <Calendar className="h-6 w-6 text-purple-500" />
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Study Streak</p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-white">
-                    {loading ? "..." : `${progressData?.studyStreak || 7} days`}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center">
-                <Clock className="h-6 w-6 text-orange-500" />
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Study Time</p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-white">
-                    {loading ? "..." : `${progressData?.totalStudyTime || 45}h`}
-                  </p>
-                </div>
+              <div className="h-[calc(100%-88px)]">
+                <AgenticChat />
               </div>
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
-            <div className="space-y-3">
-              {quickActions.map((action) => (
-                <Link
-                  key={action.title}
-                  to={action.link}
-                  className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow group flex items-center space-x-3"
-                >
-                  <div className={`${action.color} rounded-lg p-2 group-hover:scale-110 transition-transform`}>
-                    <action.icon className="h-4 w-4 text-white" />
+          {/* Right Sidebar - Stack vertically on mobile */}
+          <div className="space-y-6 lg:space-y-0 lg:flex lg:flex-col lg:h-[800px] lg:gap-6">
+            {/* Progress Overview */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 lg:flex-1">
+              <div className="p-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Progress Overview</h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <Clock className="h-8 w-8 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{studyStats.totalHours}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300">Hours Studied</div>
                   </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900 dark:text-white text-sm">{action.title}</h4>
-                    <p className="text-gray-600 dark:text-gray-400 text-xs">{action.description}</p>
+                  <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <Target className="h-8 w-8 text-green-600 dark:text-green-400 mx-auto mb-2" />
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {studyStats.completedSessions}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300">Sessions</div>
                   </div>
-                </Link>
-              ))}
+                  <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                    <TrendingUp className="h-8 w-8 text-orange-600 dark:text-orange-400 mx-auto mb-2" />
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{studyStats.streak}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300">Day Streak</div>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                    <BookOpen className="h-8 w-8 text-purple-600 dark:text-purple-400 mx-auto mb-2" />
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{studyStats.averageScore}%</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300">Avg Score</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 lg:flex-1">
+              <div className="p-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
+                  {quickActions.map((action, index) => (
+                    <a
+                      key={index}
+                      href={action.href}
+                      className="flex items-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
+                    >
+                      <div
+                        className={`p-2 rounded-lg ${action.color} text-white mr-4 group-hover:scale-110 transition-transform`}
+                      >
+                        <action.icon className="h-5 w-5" />
+                      </div>
+                      <span className="font-medium text-gray-900 dark:text-white">{action.label}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Progress Tracker */}
-      <ProgressTracker />
-
-      {/* Recent Activity */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Recent Activity</h2>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between py-2">
-            <div className="flex items-center space-x-3">
-              <div className="bg-blue-100 dark:bg-blue-900 rounded p-2">
-                <CreditCard className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Generated 15 flashcards</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">React Fundamentals</p>
-              </div>
+        {/* Weekly Progress Section */}
+        <div className="mt-8">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Weekly Study Progress</h2>
+              <ProgressTracker />
             </div>
-            <span className="text-xs text-gray-500 dark:text-gray-400">2 hours ago</span>
-          </div>
-
-          <div className="flex items-center justify-between py-2">
-            <div className="flex items-center space-x-3">
-              <div className="bg-emerald-100 dark:bg-emerald-900 rounded p-2">
-                <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Completed practice exam</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Score: 85%</p>
-              </div>
-            </div>
-            <span className="text-xs text-gray-500 dark:text-gray-400">1 day ago</span>
-          </div>
-
-          <div className="flex items-center justify-between py-2">
-            <div className="flex items-center space-x-3">
-              <div className="bg-purple-100 dark:bg-purple-900 rounded p-2">
-                <Upload className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Uploaded course material</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">TypeScript Advanced Concepts.pdf</p>
-              </div>
-            </div>
-            <span className="text-xs text-gray-500 dark:text-gray-400">2 days ago</span>
           </div>
         </div>
       </div>
