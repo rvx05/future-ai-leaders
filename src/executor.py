@@ -1,6 +1,6 @@
 """
-Executor Module Stub
-Define task execution and synthesis interfaces for Agentic AI.
+Legacy Agent Executor Module
+This is a placeholder for backward compatibility
 """
 import google.generativeai as genai
 from typing import List, Dict, Any, Optional
@@ -53,7 +53,7 @@ class AgentExecutor:
         User Request: "{original_request}"
         Execution Results: {results}
         
-        Based on the results, provide a final answer to the user's request.
+        Based on the a final answer to the user's request.
         If the results contain an error, inform the user about the error in a helpful way.
         """
         

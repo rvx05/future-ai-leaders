@@ -45,8 +45,6 @@ interface Course {
   study_plan?: StudyPlan;
 }
 
-
-
 export const StudyPlanPage: React.FC = () => {
   const { callApi } = useApi();
   const [courses, setCourses] = useState<Course[]>([]);

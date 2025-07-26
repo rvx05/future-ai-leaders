@@ -1,101 +1,150 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback } from 'react';
 
 interface Message {
-  id: string
-  role: "user" | "assistant"
-  content: string
-  timestamp: Date
-  plan?: any[]
-  execution_results?: any[]
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  plan?: any[];
+  execution_results?: any[];
 }
 
-interface UseAgenticAIReturn {
-  messages: Message[]
-  loading: boolean
-  error: string | null
-  sendMessage: (message: string) => Promise<void>
-  clearMessages: () => void
+interface AgenticAIState {
+  messages: Message[];
+  loading: boolean;
+  error: string | null;
 }
 
-export const useAgenticAI = (): UseAgenticAIReturn => {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+export const useAgenticAI = () => {
+  const [state, setState] = useState<AgenticAIState>({
+    messages: [],
+    loading: false,
+    error: null,
+  });
 
-  const sendMessage = useCallback(async (message: string) => {
+  const sendMessage = useCallback(async (content: string, files?: File[]) => {
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
+
+    setState(prev => ({
+      ...prev,
+      loading: true,
+      error: null,
+    }));
+
+    // Add user message immediately
     const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: message,
+      id: `user_${Date.now()}`,
+      role: 'user',
+      content,
       timestamp: new Date(),
-    }
+    };
 
-    setMessages((prev) => [...prev, userMessage])
-    setLoading(true)
-    setError(null)
+    setState(prev => ({
+      ...prev,
+      messages: [...prev.messages, userMessage],
+    }));
 
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
-      const response = await fetch(`${apiBaseUrl}/api/agent`, {
-        method: "POST",
+      // Handle file uploads first if present
+      if (files && files.length > 0) {
+        const formData = new FormData();
+        files.forEach(file => formData.append('files', file));
+
+        const uploadResponse = await fetch(`${apiBaseUrl}/api/upload/chat`, {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(`File upload failed: ${uploadResponse.status}`);
+        }
+
+        const uploadData = await uploadResponse.json();
+        console.log('Files uploaded:', uploadData);
+        
+        // Update content to include file upload information
+        content = `${content}\n\nFiles uploaded: ${files.map(f => f.name).join(', ')}`;
+      }
+
+      const response = await fetch(`${apiBaseUrl}/api/chat/orchestrator`, {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message }),
-      })
+        credentials: 'include',
+        body: JSON.stringify({
+          message: content,
+          user_id: 'current_user', // This should come from auth context
+        }),
+      });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        if (response.status === 401) {
+          throw new Error('Please log in to continue');
+        }
+        throw new Error(`Server error: ${response.status}`);
       }
 
-      const data = await response.json()
+      const data = await response.json();
 
+      // Add assistant message
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: data.response || "I'm here to help with your studies!",
+        id: `assistant_${Date.now()}`,
+        role: 'assistant',
+        content: data.response || 'I apologize, but I couldn\'t generate a response.',
         timestamp: new Date(),
-        plan: data.plan,
-        execution_results: data.execution_results,
-      }
+        plan: data.intent_analysis ? [data.intent_analysis] : undefined,
+        execution_results: data.agent_responses ? Object.entries(data.agent_responses).map(([agent, response]) => ({
+          task_id: agent,
+          status: 'completed',
+          result: response,
+        })) : undefined,
+      };
 
-      setMessages((prev) => [...prev, assistantMessage])
-    } catch (err) {
-      console.error("API Error:", err)
+      setState(prev => ({
+        ...prev,
+        messages: [...prev.messages, assistantMessage],
+        loading: false,
+        error: null,
+      }));
 
-      // Provide a helpful mock response when backend is not available
-      const mockResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: `I understand you want help with: "${message}"\n\nI'm currently in demo mode. Here's how I can help you:\n\n• Generate flashcards from your study materials\n• Create personalized study plans\n• Generate practice exams and quizzes\n• Answer questions about your course content\n• Track your learning progress\n\nTo get started, try uploading some course materials or ask me to create a study plan for a specific topic!`,
+    } catch (err: any) {
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: err.message || 'An unexpected error occurred.',
+      }));
+
+      // Add error message
+      const errorMessage: Message = {
+        id: `error_${Date.now()}`,
+        role: 'assistant',
+        content: `I encountered an error: ${err.message || 'Unknown error'}`,
         timestamp: new Date(),
-        plan: [
-          { id: 1, description: "Analyze user request", tool: "text_analyzer" },
-          { id: 2, description: "Generate appropriate response", tool: "response_generator" },
-        ],
-        execution_results: [
-          { task_id: 1, status: "completed" },
-          { task_id: 2, status: "completed" },
-        ],
-      }
+      };
 
-      setMessages((prev) => [...prev, mockResponse])
-      setError("Backend not available - using demo mode")
-    } finally {
-      setLoading(false)
+      setState(prev => ({
+        ...prev,
+        messages: [...prev.messages, errorMessage],
+      }));
     }
-  }, [])
+  }, []);
 
   const clearMessages = useCallback(() => {
-    setMessages([])
-    setError(null)
-  }, [])
+    setState(prev => ({
+      ...prev,
+      messages: [],
+      error: null,
+    }));
+  }, []);
 
   return {
-    messages,
-    loading,
-    error,
+    messages: state.messages,
+    loading: state.loading,
+    error: state.error,
     sendMessage,
     clearMessages,
-  }
-}
+  };
+};
+

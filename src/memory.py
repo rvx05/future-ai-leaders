@@ -1,19 +1,17 @@
 """
-Memory Module - Log and store memory for the agent
-Part of the Agentic AI Architecture for the hackathon
+Agent Memory Module
 """
-
-import json
 import os
+import json
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import List, Dict, Any, Optional
 
 class AgentMemory:
     """
     Handles memory storage and retrieval for the agentic AI.
     Stores conversation history and provides context for new interactions.
     """
-    
+
     def __init__(self, memory_file: str = "agent_memory.json"):
         """Initialize memory with optional persistent storage."""
         self.memory_file = memory_file
@@ -79,4 +77,3 @@ class AgentMemory:
         """
         self.history = []
         self._save_memory()
-

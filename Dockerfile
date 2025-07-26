@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 # Set the python path
 ENV PYTHONPATH /app
@@ -32,10 +32,10 @@ ENV PYTHONPATH /app
 # Copy the entire src folder
 COPY src/ ./src/
 
-# Copy built React frontend from previous stage
-RUN rm -rf src/static && mkdir -p src/static
-# Copy the entire built frontend (dist directory) into the static folder
-COPY --from=frontend-build /frontend/dist/ ./src/static/
+# Copy built React frontend from previous stage: flatten static assets
+RUN rm -rf src/static
+# Copy all build artifacts from frontend
+COPY --from=frontend-build /frontend/build/ ./src/static/
 
 # Create a non-root user
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
@@ -44,5 +44,5 @@ USER appuser
 # Expose port for Flask app
 EXPOSE 5001
 
-# Default command to run Flask app with Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5001", "src.main:app"]
+# Default command to run Flask app
+CMD ["python", "src/main.py"]

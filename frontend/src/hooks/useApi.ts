@@ -17,64 +17,26 @@ export const useApi = <T>() => {
     setState({ data: null, loading: true, error: null });
     
     try {
-      // Mock API calls for development
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      let mockData: any;
-      
-      switch (endpoint) {
-        case '/api/plan':
-          mockData = {
-            schedule: [
-              { date: '2025-01-15', topic: 'Introduction to React', duration: 2 },
-              { date: '2025-01-16', topic: 'TypeScript Basics', duration: 1.5 },
-              { date: '2025-01-17', topic: 'Component Architecture', duration: 2.5 },
-            ],
-            totalHours: 20,
-            examDate: '2025-02-01',
-          };
-          break;
-        case '/api/flashcards':
-          mockData = [
-            { id: 1, front: 'What is React?', back: 'A JavaScript library for building user interfaces' },
-            { id: 2, front: 'What is JSX?', back: 'A syntax extension for JavaScript that allows HTML-like markup' },
-            { id: 3, front: 'What are React Hooks?', back: 'Functions that let you use state and other React features in functional components' },
-          ];
-          break;
-        case '/api/exam':
-          mockData = {
-            questions: [
-              {
-                id: 1,
-                question: 'What is the virtual DOM in React?',
-                options: ['A copy of the real DOM', 'A JavaScript object representation of the DOM', 'A browser API', 'A CSS framework'],
-                correct: 1,
-                explanation: 'The virtual DOM is a JavaScript representation of the actual DOM that React uses for efficient updates.',
-              },
-              {
-                id: 2,
-                question: 'Which hook is used for managing component state?',
-                options: ['useEffect', 'useState', 'useContext', 'useCallback'],
-                correct: 1,
-                explanation: 'useState is the React hook used for managing local component state.',
-              },
-            ],
-          };
-          break;
-        case '/api/memory':
-          mockData = {
-            weeklyProgress: 75,
-            overallProgress: 60,
-            studyStreak: 7,
-            totalStudyTime: 45,
-          };
-          break;
-        default:
-          mockData = { message: 'Mock API response' };
+      const response = await fetch(`http://localhost:5000${endpoint}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options?.headers,
+        },
+        credentials: 'include', // Include cookies for authentication
+        ...options,
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setState({ data: null, loading: false, error: 'Authentication required' });
+          return;
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
-      setState({ data: mockData, loading: false, error: null });
-      return mockData;
+
+      const result = await response.json();
+      setState({ data: result, loading: false, error: null });
+      return result;
     } catch (error) {
       setState({ data: null, loading: false, error: (error as Error).message });
       throw error;
