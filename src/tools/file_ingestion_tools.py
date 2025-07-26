@@ -250,19 +250,20 @@ def process_uploaded_file(file_path: str, filename: str) -> Dict[str, Any]:
             "error": f"Failed to process file {filename}: {str(e)}"
         }
 
-def chunk_content_for_analysis(content: str, chunk_size: int = 2000, overlap: int = 200) -> List[Dict[str, Any]]:
+def chunk_content_for_analysis(content: str) -> List[Dict[str, Any]]:
     """
-    Split large content into manageable chunks for agent processing
+    Split large content into manageable chunks for agent processing with default settings
     
     Args:
         content: Text content to chunk
-        chunk_size: Maximum size of each chunk
-        overlap: Number of characters to overlap between chunks
         
     Returns:
         List of content chunks with metadata
     """
     try:
+        chunk_size = 2000
+        overlap = 200
+        
         if len(content) <= chunk_size:
             return [{
                 "chunk_id": 1,

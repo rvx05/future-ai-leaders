@@ -153,8 +153,7 @@ def create_new_course(title: str, description: str, course_outline: str) -> Dict
             "error": str(e)
         }
 
-def store_course_material(course_id: str, title: str, content_type: str, 
-                         content_text: str, week_number: int = None) -> Dict[str, Any]:
+def store_course_material(course_id: str, title: str, content_type: str, content_text: str) -> Dict[str, Any]:
     """Store course material in the database for the current user"""
     try:
         user_id = get_current_user_id()
@@ -169,7 +168,7 @@ def store_course_material(course_id: str, title: str, content_type: str,
         
         material_id = db.add_course_material(
             course_id, user_id, title, content_type, 
-            content_text, None, week_number, []
+            content_text, None, None, []  # week_number set to None
         )
         
         if material_id:
