@@ -619,5 +619,196 @@ class Database:
                 } if next_session else None
             }
 
+    def create_course(self, user_id: str, title: str, description: str, course_outline: str, metadata: Dict[str, Any] = None) -> Optional[str]:
+        """Create a new course and return the course ID"""
+        course_id = str(uuid.uuid4())
+        created_at = datetime.utcnow().isoformat()
+        metadata_json = json.dumps(metadata or {})
+        
+        try:
+            with self.get_connection() as conn:
+                conn.execute('''
+                    INSERT INTO courses (id, user_id, title, description, course_outline, created_at, metadata)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (course_id, user_id, title, description, course_outline, created_at, metadata_json))
+                conn.commit()
+                return course_id
+        except Exception as e:
+            print(f"Error creating course: {e}")
+            return None
+
+    def get_course(self, course_id: str) -> Optional[Course]:
+        """Get a course by ID"""
+        with self.get_connection() as conn:
+            row = conn.execute(
+                'SELECT * FROM courses WHERE id = ?', (course_id,)
+            ).fetchone()
+            
+            if row:
+                return Course(
+                    row['id'], row['user_id'], row['title'], 
+                    row['description'], row['course_outline'], 
+                    row['created_at'], row['metadata']
+                )
+            return None
+
+    def get_user_courses(self, user_id: str) -> List[Course]:
+        """Get all courses for a user"""
+        courses = []
+        with self.get_connection() as conn:
+            rows = conn.execute(
+                'SELECT * FROM courses WHERE user_id = ? ORDER BY created_at DESC',
+                (user_id,)
+            ).fetchall()
+            
+            for row in rows:
+                courses.append(Course(
+                    row['id'], row['user_id'], row['title'],
+                    row['description'], row['course_outline'],
+                    row['created_at'], row['metadata']
+                ))
+        return courses
+
+    def add_course_material(self, course_id: str, user_id: str, title: str, content_type: str,
+                           content_text: str, file_path: Optional[str] = None, 
+                           week_number: Optional[int] = None, topics: List[str] = None) -> Optional[str]:
+        """Add course material and return material ID"""
+        material_id = str(uuid.uuid4())
+        uploaded_at = datetime.utcnow().isoformat()
+        topics_json = json.dumps(topics or [])
+        
+        try:
+            with self.get_connection() as conn:
+                conn.execute('''
+                    INSERT INTO course_materials 
+                    (id, course_id, user_id, title, content_type, file_path, content_text, 
+                     uploaded_at, week_number, topics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (material_id, course_id, user_id, title, content_type, file_path,
+                      content_text, uploaded_at, week_number, topics_json))
+                conn.commit()
+                return material_id
+        except Exception as e:
+            print(f"Error adding course material: {e}")
+            return None
+
+    def get_course_materials(self, course_id: str) -> List[Dict[str, Any]]:
+        """Get all materials for a course"""
+        materials = []
+        with self.get_connection() as conn:
+            rows = conn.execute(
+                'SELECT * FROM course_materials WHERE course_id = ? ORDER BY uploaded_at DESC',
+                (course_id,)
+            ).fetchall()
+            
+            for row in rows:
+                materials.append({
+                    'id': row['id'],
+                    'course_id': row['course_id'],
+                    'user_id': row['user_id'],
+                    'title': row['title'],
+                    'content_type': row['content_type'],
+                    'file_path': row['file_path'],
+                    'content_text': row['content_text'],
+                    'uploaded_at': row['uploaded_at'],
+                    'week_number': row['week_number'],
+                    'topics': json.loads(row['topics']),
+                    'metadata': json.loads(row['metadata'] or '{}')
+                })
+        return materials
+
+    def create_study_plan(self, course_id: str, user_id: str, plan_data: Dict[str, Any]) -> Optional[str]:
+        """Create a study plan and return plan ID"""
+        plan_id = str(uuid.uuid4())
+        created_at = datetime.utcnow().isoformat()
+        plan_data_json = json.dumps(plan_data)
+        
+        try:
+            with self.get_connection() as conn:
+                conn.execute('''
+                    INSERT INTO study_plans (id, course_id, user_id, plan_data, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (plan_id, course_id, user_id, plan_data_json, created_at, created_at))
+                conn.commit()
+                return plan_id
+        except Exception as e:
+            print(f"Error creating study plan: {e}")
+            return None
+
+    def get_course_study_plan(self, course_id: str) -> Optional[StudyPlan]:
+        """Get study plan for a course"""
+        with self.get_connection() as conn:
+            row = conn.execute(
+                'SELECT * FROM study_plans WHERE course_id = ? ORDER BY created_at DESC LIMIT 1',
+                (course_id,)
+            ).fetchone()
+            
+            if row:
+                return StudyPlan(
+                    row['id'], row['course_id'], row['user_id'],
+                    row['plan_data'], row['created_at'], 
+                    row['updated_at'], row['status']
+                )
+            return None
+
+    def add_study_session(self, study_plan_id: str, course_id: str, user_id: str,
+                         session_number: int, title: str, topics: List[str],
+                         scheduled_date: str, estimated_duration: int,
+                         content_requirements: List[str], study_guide: str) -> Optional[str]:
+        """Add a study session and return session ID"""
+        session_id = str(uuid.uuid4())
+        topics_json = json.dumps(topics)
+        requirements_json = json.dumps(content_requirements)
+        
+        try:
+            with self.get_connection() as conn:
+                conn.execute('''
+                    INSERT INTO study_sessions 
+                    (id, study_plan_id, course_id, user_id, session_number, title, topics,
+                     scheduled_date, estimated_duration, content_requirements, study_guide)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (session_id, study_plan_id, course_id, user_id, session_number, title,
+                      topics_json, scheduled_date, estimated_duration, requirements_json, study_guide))
+                conn.commit()
+                return session_id
+        except Exception as e:
+            print(f"Error adding study session: {e}")
+            return None
+
+    def get_study_sessions(self, study_plan_id: str) -> List[StudySession]:
+        """Get all study sessions for a study plan"""
+        sessions = []
+        with self.get_connection() as conn:
+            rows = conn.execute(
+                'SELECT * FROM study_sessions WHERE study_plan_id = ? ORDER BY session_number ASC',
+                (study_plan_id,)
+            ).fetchall()
+            
+            for row in rows:
+                sessions.append(StudySession(
+                    row['id'], row['study_plan_id'], row['course_id'], row['user_id'],
+                    row['session_number'], row['title'], row['topics'], row['scheduled_date'],
+                    row['estimated_duration'], row['content_requirements'], row['study_guide'],
+                    row['status'], row['completed_at'], row['validation_score'], row['notes']
+                ))
+        return sessions
+
+    def complete_study_session(self, session_id: str, validation_score: float, notes: str = "") -> bool:
+        """Mark a study session as completed"""
+        completed_at = datetime.utcnow().isoformat()
+        
+        try:
+            with self.get_connection() as conn:
+                conn.execute('''
+                    UPDATE study_sessions 
+                    SET status = "completed", completed_at = ?, validation_score = ?, notes = ?
+                    WHERE id = ?
+                ''', (completed_at, validation_score, notes, session_id))
+                conn.commit()
+                return True
+        except Exception as e:
+            print(f"Error completing study session: {e}")
+            return False
+
 # Global database instance
 db = Database()

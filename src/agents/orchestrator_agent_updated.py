@@ -106,17 +106,60 @@ You are the workflow coordinator ensuring all course data flows through the cent
 """
 
 # Create function tools for file processing
-process_file_tool = FunctionTool(process_uploaded_file)
-extract_pdf_tool = FunctionTool(extract_text_from_pdf)
-extract_docx_tool = FunctionTool(extract_text_from_docx)
-extract_txt_tool = FunctionTool(extract_text_from_txt)
-chunk_content_tool = FunctionTool(chunk_content_for_analysis)
-analyze_structure_tool = FunctionTool(analyze_content_structure)
+process_file_tool = FunctionTool(
+    name="process_uploaded_file",
+    func=process_uploaded_file,
+    description="Process any uploaded file and extract content"
+)
+
+extract_pdf_tool = FunctionTool(
+    name="extract_text_from_pdf",
+    func=extract_text_from_pdf,
+    description="Extract text content from PDF files"
+)
+
+extract_docx_tool = FunctionTool(
+    name="extract_text_from_docx",
+    func=extract_text_from_docx,
+    description="Extract text content from Word documents"
+)
+
+extract_txt_tool = FunctionTool(
+    name="extract_text_from_txt",
+    func=extract_text_from_txt,
+    description="Extract text content from text files"
+)
+
+chunk_content_tool = FunctionTool(
+    name="chunk_content_for_analysis",
+    func=chunk_content_for_analysis,
+    description="Split large content into manageable chunks"
+)
+
+analyze_structure_tool = FunctionTool(
+    name="analyze_content_structure",
+    func=analyze_content_structure,
+    description="Analyze document structure and organization"
+)
 
 # Create agent tools for coordinating with other agents
-knowledge_base_tool = AgentTool(agent=knowledge_base_agent)
-course_planning_tool = AgentTool(agent=course_planning_agent)
-research_tool = AgentTool(agent=research_agent)
+knowledge_base_tool = AgentTool(
+    name="knowledge_base_agent",
+    agent=knowledge_base_agent,
+    description="Access knowledge base for course management, student data, and context retrieval"
+)
+
+course_planning_tool = AgentTool(
+    name="course_planning_agent", 
+    agent=course_planning_agent,
+    description="Generate study plans, analyze course content, and provide educational guidance"
+)
+
+research_tool = AgentTool(
+    name="research_agent",
+    agent=research_agent,
+    description="Conduct research and provide current information on educational topics"
+)
 
 # Create the main orchestrator agent using Google ADK
 orchestrator_agent = Agent(

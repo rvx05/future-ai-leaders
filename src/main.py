@@ -17,6 +17,13 @@ import json
 import asyncio
 from datetime import datetime
 
+# Simple in-memory storage for recently uploaded file content
+# In production, this should be replaced with proper database storage or Redis
+recent_uploads = {}
+
+# Session management for persistent agent memory
+user_sessions = {}
+
 # Import Google ADK components
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
@@ -70,7 +77,7 @@ else:
     print("⚠️ ADK Runner not available - missing API key")
 
 async def run_agent_query(user_input: str, user_id: str = "anonymous") -> str:
-    """Helper function to run agent queries using ADK Runner"""
+    """Helper function to run agent queries using ADK Runner with persistent sessions"""
     if not adk_runner or not session_service:
         raise Exception("ADK Runner or SessionService not available")
     
@@ -79,13 +86,14 @@ async def run_agent_query(user_input: str, user_id: str = "anonymous") -> str:
         parts=[genai.types.Part(text=user_input)]
     )
     
-    # Create session for this user - ADK will handle session ID generation
+    # Use persistent session for this user
     app_name = "Educational Buddy"
     
     try:
-        # Create a new session with proper ADK parameters
-        # Note: InMemorySessionService auto-generates session ID
-        print(f"Creating new session for user {user_id}")
+        # For now, create a new session each time but store context differently
+        # The ADK InMemorySessionService doesn't support session retrieval by ID
+        # We'll implement our own context persistence through the enhanced input
+        print(f"Creating session for user {user_id}")
         session = await session_service.create_session(
             app_name=app_name,
             user_id=str(user_id),
@@ -95,7 +103,7 @@ async def run_agent_query(user_input: str, user_id: str = "anonymous") -> str:
         if not session or not hasattr(session, 'id'):
             raise Exception("Session creation failed - invalid session object returned")
         
-        print(f"✅ Session created successfully with ID: {session.id}")
+        print(f"✅ Session ready with ID: {session.id}")
         
     except Exception as session_error:
         print(f"❌ Session creation failed: {session_error}")
@@ -103,15 +111,41 @@ async def run_agent_query(user_input: str, user_id: str = "anonymous") -> str:
     
     # Now run the agent with the valid session
     final_response = None
+    event_count = 0
     try:
+        print(f"🤖 Running ADK agent for user {user_id}, session {session.id}")
         async for event in adk_runner.run_async(
             user_id=str(user_id), 
             session_id=session.id,
             new_message=user_content
         ):
+            event_count += 1
+            print(f"📤 Event {event_count}: {type(event).__name__}, is_final: {event.is_final_response()}")
+            
             if event.is_final_response():
-                final_response = event.content.parts[0].text
-                break
+                print(f"📋 Final response event: {event}")
+                # Add safety checks for response content
+                if event.content and hasattr(event.content, 'parts') and event.content.parts:
+                    final_response = event.content.parts[0].text
+                    print(f"✅ Extracted response text: {final_response[:100]}...")
+                    break
+                else:
+                    print(f"⚠️ Received final response event with empty content")
+                    print(f"   Event content: {event.content}")
+                    print(f"   Event dir: {dir(event)}")
+                    # Try to extract any available text from the event
+                    if hasattr(event, 'text'):
+                        final_response = event.text
+                        print(f"✅ Using event.text: {final_response[:100]}...")
+                        break
+                    elif hasattr(event, 'content') and event.content:
+                        final_response = str(event.content)
+                        print(f"✅ Using str(event.content): {final_response[:100]}...")
+                        break
+                    else:
+                        print(f"❌ No usable content found in event")
+        
+        print(f"📊 Processed {event_count} events total")
     except Exception as runner_error:
         print(f"❌ ADK Runner execution failed: {runner_error}")
         raise Exception(f"Agent execution failed: {runner_error}")
@@ -268,10 +302,49 @@ def chat():
         print(f"🎯 Processing user input: {user_input[:100]}...")
         print(f"🤖 Using ADK Runner with orchestrator agent...")
         
+        # Check if user mentions uploaded files and include the content
+        # Also check for study plan requests and course-related queries
+        enhanced_input = user_input
+        user_key = str(current_user.id) if current_user.is_authenticated else 'anonymous'
+        
+        # Always check for uploaded files and include them in context
+        if user_key in recent_uploads:
+            upload_data = recent_uploads[user_key]
+            file_contents = []
+            for file_info in upload_data['content']:
+                file_contents.append(f"""
+File: {file_info['filename']}
+Content: {file_info['content'][:4000]}{'...' if len(file_info['content']) > 4000 else ''}
+""")
+            
+            if file_contents:
+                # Include file content for study plan requests or course-related queries
+                if any(keyword in user_input.lower() for keyword in ['study plan', 'create', 'course', 'database', 'comp 353', 'syllabus', 'outline']):
+                    enhanced_input = f"""
+{user_input}
+
+CONTEXT - PREVIOUSLY UPLOADED FILE CONTENT:
+{''.join(file_contents)}
+
+Please use this uploaded content to fulfill the user's request. The file was already processed and contains the course information.
+"""
+                    print(f"📄 Including file content context for course-related request")
+                # Also include for file-related queries
+                elif "Files uploaded:" in user_input or "file" in user_input.lower():
+                    enhanced_input = f"""
+{user_input}
+
+UPLOADED FILE CONTENT:
+{''.join(file_contents)}
+
+Please process this content for the user's request.
+"""
+                    print(f"📄 Including content from {len(file_contents)} uploaded file(s)")
+        
         try:
             # Use ADK Runner to process the message
             async def run_agent():
-                return await run_agent_query(user_input, str(user_id))
+                return await run_agent_query(enhanced_input, str(user_id))
             
             # Run the async agent function
             response_text = asyncio.run(run_agent())
@@ -343,11 +416,42 @@ def get_progress():
 def get_chat_memory():
     """Get user's chat history/memory"""
     try:
-        # For now, return empty memory - can be enhanced later
+        user_key = str(current_user.id) if current_user.is_authenticated else 'anonymous'
+        
+        # Check for uploaded files (this is our main persistence mechanism)
+        file_info = {}
+        if user_key in recent_uploads:
+            upload_data = recent_uploads[user_key]
+            file_info['has_uploaded_files'] = True
+            file_info['file_count'] = len(upload_data['content'])
+            file_info['files'] = [f['filename'] for f in upload_data['content']]
+            file_info['upload_timestamp'] = upload_data['timestamp']
+        else:
+            file_info['has_uploaded_files'] = False
+        
         return jsonify({
             'messages': [],
-            'session_id': f"user_{current_user.id}_session",
-            'total_messages': 0
+            'file_info': file_info,
+            'total_messages': 0,
+            'user_key': user_key
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/session/clear', methods=['POST'])
+@api_login_required  
+def clear_session():
+    """Clear user's uploaded files for testing"""
+    try:
+        user_key = str(current_user.id) if current_user.is_authenticated else 'anonymous'
+            
+        # Clear uploaded files  
+        if user_key in recent_uploads:
+            del recent_uploads[user_key]
+            
+        return jsonify({
+            'message': 'Uploaded files cleared successfully',
+            'user_key': user_key
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -473,6 +577,13 @@ def upload_chat_documents():
         session_data = {
             'uploaded_files': processed_content,
             'upload_timestamp': datetime.now().isoformat()
+        }
+        
+        # Store in our in-memory cache for agent access
+        user_key = str(current_user.id) if current_user.is_authenticated else 'anonymous'
+        recent_uploads[user_key] = {
+            'content': processed_content,
+            'timestamp': datetime.now().isoformat()
         }
         
         return jsonify({

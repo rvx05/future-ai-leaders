@@ -22,11 +22,6 @@ try:
 except ImportError:
     DocxDocument = None
 
-try:
-    import pandas as pd
-except ImportError:
-    pd = None
-
 def extract_text_from_pdf(file_path: str) -> Dict[str, Any]:
     """
     Extract text content from PDF files
