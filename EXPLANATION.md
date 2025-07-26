@@ -2,7 +2,7 @@
 
 ## 1. Agent Workflow
 
-The Educational Buddy system processes user input through a sophisticated multi-agent workflow:
+The AI Study Buddy system processes user input through a sophisticated multi-agent workflow:
 
 1. **Receive user input** - User submits a message through the React frontend chat interface
 2. **Orchestrator Analysis** - The main orchestrator agent analyzes the request and determines which specialized agents to coordinate
