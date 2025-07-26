@@ -18,12 +18,25 @@ google-adk>=0.1.0
 # Additional dependencies for agents
 firecrawl-py==1.0.0
 faiss-cpu>=1.8.0
+
+# File processing dependencies
+PyPDF2>=3.0.0
+python-docx>=1.1.0
+openpyxl>=3.1.0
+pandas>=2.0.0
+chardet>=5.2.0
 sentence-transformers>=2.7.0
 beautifulsoup4==4.12.2
 
+# File processing libraries
+PyPDF2==3.0.1
+pdfplumber==0.10.3
+python-docx==1.1.0
+openpyxl==3.1.2
+
 # Data processing
 numpy>=1.26.0
-# pandas>=2.2.0
+pandas>=2.2.0
 
 # Utilities
 rich==13.7.0

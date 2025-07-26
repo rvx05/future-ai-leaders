@@ -14,6 +14,7 @@ export const NavigationBar = () => {
   const navigation = [
     { name: 'Dashboard', href: '/' },
     { name: 'AI Chat', href: '/chat' },
+    { name: 'Courses', href: '/courses' },
     { name: 'Flashcards', href: '/flashcards' },
     { name: 'Practice Exam', href: '/exam' },
     { name: 'Study Plan', href: '/study-plan' },

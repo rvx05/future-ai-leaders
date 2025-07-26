@@ -25,8 +25,9 @@ from google import genai
 # Import new Google ADK agents
 from agents.orchestrator_agent import orchestrator_agent
 
-# Import authentication
+# Import authentication and models
 from auth import init_auth, register_user, authenticate_user, get_current_user_data, update_user_profile, get_user_progress, add_study_session, api_login_required
+from models import db
 
 # Load environment variables
 load_dotenv()
@@ -314,9 +315,25 @@ def chat():
 @app.route('/api/progress', methods=['GET'])
 @api_login_required
 def get_progress():
-    """Get user learning progress"""
+    """Get comprehensive user learning progress"""
     try:
-        progress_data = get_user_progress()
+        user_id = current_user.id if current_user.is_authenticated else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        # Get overall progress
+        progress_data = db.get_user_progress(user_id)
+        
+        # Get course-specific progress
+        courses = db.get_user_courses(user_id)
+        course_progress = []
+        for course in courses:
+            course_prog = db.get_course_progress(course.id)
+            course_prog['course_title'] = course.title
+            course_progress.append(course_prog)
+        
+        progress_data['course_progress'] = course_progress
+        
         return jsonify(progress_data), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -387,6 +404,315 @@ def upload_course():
             'message': 'Course uploaded successfully',
             'filename': file.filename
         }), 201
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Chat document upload endpoint
+@app.route('/api/upload/chat', methods=['POST'])
+@api_login_required
+def upload_chat_documents():
+    """Upload documents for chat analysis"""
+    try:
+        if 'files' not in request.files:
+            return jsonify({'error': 'No files provided'}), 400
+        
+        files = request.files.getlist('files')
+        if not files or all(file.filename == '' for file in files):
+            return jsonify({'error': 'No files selected'}), 400
+        
+        # Import file processing tools
+        from tools.file_ingestion_tools import process_uploaded_file
+        import tempfile
+        
+        uploaded_files = []
+        processed_content = []
+        
+        for file in files:
+            if file.filename and file.filename != '':
+                # Create temporary file
+                with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as temp_file:
+                    file.save(temp_file.name)
+                    
+                    # Process the file
+                    result = process_uploaded_file(temp_file.name, file.filename)
+                    
+                    if result.get("status") == "success":
+                        uploaded_files.append({
+                            'filename': file.filename,
+                            'size': len(file.read()),
+                            'type': file.content_type,
+                            'word_count': result.get('word_count', 0),
+                            'content_type': result.get('content_type', 'unknown')
+                        })
+                        
+                        # Store the extracted content for agent use
+                        processed_content.append({
+                            'filename': file.filename,
+                            'content': result.get('content', ''),
+                            'metadata': result.get('metadata', {}),
+                            'processed_at': result.get('processed_at')
+                        })
+                    else:
+                        uploaded_files.append({
+                            'filename': file.filename,
+                            'error': result.get('error', 'Processing failed'),
+                            'type': file.content_type
+                        })
+                    
+                    # Clean up temp file
+                    try:
+                        os.unlink(temp_file.name)
+                    except:
+                        pass
+                    
+                    file.seek(0)  # Reset file pointer
+        
+        # Store processed content in session or database for agent access
+        # For now, we'll store it in a simple way - in production, use proper storage
+        session_data = {
+            'uploaded_files': processed_content,
+            'upload_timestamp': datetime.now().isoformat()
+        }
+        
+        return jsonify({
+            'message': f'Successfully processed {len([f for f in uploaded_files if "error" not in f])} file(s)',
+            'files': uploaded_files,
+            'processed_content_available': len(processed_content) > 0,
+            'session_data': session_data
+        }), 201
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Course Management Endpoints
+@app.route('/api/courses', methods=['POST'])
+@api_login_required  
+def create_course():
+    """Create a new course with agent assistance"""
+    try:
+        data = request.get_json()
+        course_title = data.get('title', '').strip()
+        course_description = data.get('description', '').strip()
+        course_outline = data.get('outline', '').strip()
+        
+        if not all([course_title, course_outline]):
+            return jsonify({'error': 'Course title and outline are required'}), 400
+        
+        if not adk_runner:
+            return jsonify({'error': 'ADK Runner not configured'}), 500
+        
+        # Use the agent to help create and analyze the course
+        user_id = current_user.id if current_user.is_authenticated else 'anonymous'
+        
+        course_prompt = f"""
+        Please help me create a new course with the following details:
+        Title: {course_title}
+        Description: {course_description}
+        Course Outline: {course_outline}
+        
+        I need you to:
+        1. Analyze the course content and structure
+        2. Create a course in the system
+        3. Ask me any questions needed for creating a study plan
+        4. Guide me through the next steps
+        
+        My user ID is: {user_id}
+        """
+        
+        try:
+            response_text = asyncio.run(run_agent_query(course_prompt, str(user_id)))
+            
+            return jsonify({
+                'response': response_text,
+                'message': 'Course creation initiated through agent',
+                'next_steps': [
+                    'The agent will guide you through course setup',
+                    'Provide any additional information requested',
+                    'Upload your first course materials when ready'
+                ]
+            }), 201
+                
+        except Exception as e:
+            return jsonify({
+                'error': f'Course creation failed: {str(e)}',
+                'fallback': 'Please try creating the course again or contact support'
+            }), 500
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/courses', methods=['GET'])
+@api_login_required
+def get_courses():
+    """Get all courses for the current user"""
+    try:
+        user_id = current_user.id if current_user.is_authenticated else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        courses = db.get_user_courses(user_id)
+        courses_data = [course.to_dict() for course in courses]
+        
+        # Get progress for each course
+        for course_data in courses_data:
+            progress = db.get_course_progress(course_data['id'])
+            course_data['progress'] = progress
+        
+        return jsonify({
+            'courses': courses_data,
+            'total_count': len(courses_data)
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/courses/<course_id>', methods=['GET'])
+@api_login_required
+def get_course_details(course_id):
+    """Get detailed course information"""
+    try:
+        course = db.get_course(course_id)
+        if not course:
+            return jsonify({'error': 'Course not found'}), 404
+        
+        # Verify user owns this course
+        if course.user_id != current_user.id:
+            return jsonify({'error': 'Access denied'}), 403
+        
+        # Get course materials
+        materials = db.get_course_materials(course_id)
+        
+        # Get study plan if exists
+        study_plan = db.get_course_study_plan(course_id)
+        study_sessions = []
+        if study_plan:
+            study_sessions = [session.to_dict() for session in db.get_study_sessions(study_plan.id)]
+        
+        # Get progress
+        progress = db.get_course_progress(course_id)
+        
+        course_data = course.to_dict()
+        course_data.update({
+            'materials': materials,
+            'study_plan': study_plan.to_dict() if study_plan else None,
+            'study_sessions': study_sessions,
+            'progress': progress
+        })
+        
+        return jsonify(course_data), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/courses/<course_id>/materials', methods=['POST'])
+@api_login_required
+def upload_course_material(course_id):
+    """Upload course material for a specific course"""
+    try:
+        # Verify course exists and user owns it
+        course = db.get_course(course_id)
+        if not course or course.user_id != current_user.id:
+            return jsonify({'error': 'Course not found or access denied'}), 403
+        
+        data = request.get_json()
+        material_title = data.get('title', '').strip()
+        content_text = data.get('content', '').strip()
+        week_number = data.get('week_number')
+        content_type = data.get('content_type', 'lecture_notes')
+        
+        if not all([material_title, content_text]):
+            return jsonify({'error': 'Title and content are required'}), 400
+        
+        # Use agent to analyze and process the content
+        user_id = current_user.id if current_user.is_authenticated else 'anonymous'
+        
+        upload_prompt = f"""
+        I'm uploading new course material for my course:
+        Course ID: {course_id}
+        Material Title: {material_title}
+        Week Number: {week_number}
+        Content Type: {content_type}
+        Content: {content_text[:500]}...
+        
+        Please:
+        1. Analyze this content and add it to my course
+        2. Update my study plan if needed
+        3. Let me know what study sessions this affects
+        4. Provide any recommendations for studying this material
+        """
+        
+        try:
+            response_text = asyncio.run(run_agent_query(upload_prompt, str(user_id)))
+            
+            # Also add to database directly
+            material_id = db.add_course_material(
+                course_id, user_id, material_title, content_type,
+                content_text, None, week_number, []
+            )
+            
+            return jsonify({
+                'material_id': material_id,
+                'agent_response': response_text,
+                'message': 'Course material uploaded and analyzed successfully'
+            }), 201
+                
+        except Exception as e:
+            return jsonify({
+                'error': f'Material upload failed: {str(e)}',
+                'fallback': 'Material uploaded but agent analysis failed'
+            }), 500
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/study-plans/<plan_id>/sessions/<session_id>/complete', methods=['POST'])
+@api_login_required
+def complete_study_session(plan_id, session_id):
+    """Complete a study session with validation"""
+    try:
+        data = request.get_json()
+        validation_score = data.get('validation_score')
+        notes = data.get('notes', '')
+        
+        # Use agent to handle session completion
+        user_id = current_user.id if current_user.is_authenticated else 'anonymous'
+        
+        completion_prompt = f"""
+        I just completed a study session:
+        Session ID: {session_id}
+        Study Plan ID: {plan_id}
+        Validation Score: {validation_score}
+        Notes: {notes}
+        
+        Please:
+        1. Mark this session as completed
+        2. Update my progress
+        3. Give me feedback on my performance
+        4. Suggest what to focus on in the next session
+        5. Generate validation questions to test my understanding
+        """
+        
+        try:
+            response_text = asyncio.run(run_agent_query(completion_prompt, str(user_id)))
+            
+            # Update in database
+            success = db.complete_study_session(session_id, validation_score, notes)
+            
+            if success:
+                return jsonify({
+                    'message': 'Study session completed successfully',
+                    'agent_feedback': response_text,
+                    'status': 'completed'
+                }), 200
+            else:
+                return jsonify({'error': 'Failed to update session status'}), 500
+                
+        except Exception as e:
+            return jsonify({
+                'error': f'Session completion failed: {str(e)}',
+                'fallback': 'Session marked as completed but agent feedback failed'
+            }), 500
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500

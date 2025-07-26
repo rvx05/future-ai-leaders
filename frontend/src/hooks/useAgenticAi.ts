@@ -22,7 +22,7 @@ export const useAgenticAI = () => {
     error: null,
   });
 
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string, files?: File[]) => {
     setState(prev => ({
       ...prev,
       loading: true,
@@ -43,6 +43,28 @@ export const useAgenticAI = () => {
     }));
 
     try {
+      // Handle file uploads first if present
+      if (files && files.length > 0) {
+        const formData = new FormData();
+        files.forEach(file => formData.append('files', file));
+
+        const uploadResponse = await fetch('http://localhost:5000/api/upload/chat', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(`File upload failed: ${uploadResponse.status}`);
+        }
+
+        const uploadData = await uploadResponse.json();
+        console.log('Files uploaded:', uploadData);
+        
+        // Update content to include file upload information
+        content = `${content}\n\nFiles uploaded: ${files.map(f => f.name).join(', ')}`;
+      }
+
       const response = await fetch('http://localhost:5000/api/chat/orchestrator', {
         method: 'POST',
         headers: {

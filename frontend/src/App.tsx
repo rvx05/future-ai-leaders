@@ -8,6 +8,7 @@ import { ExamPage } from './pages/ExamPage';
 import { UploadPage } from './pages/UploadPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ChatPage } from './pages/ChatPage';
+import CoursePage from './pages/CoursePage';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
@@ -94,6 +95,14 @@ const AppContent = () => {
             element={
               <ProtectedRoute>
                 <ChatPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/courses" 
+            element={
+              <ProtectedRoute>
+                <CoursePage />
               </ProtectedRoute>
             } 
           />

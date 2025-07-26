@@ -1,12 +1,15 @@
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
-import { Send, Bot, User, Loader2, RefreshCw, Eye, EyeOff } from "lucide-react"
+import { Send, Bot, User, Loader2, RefreshCw, Eye, EyeOff, Paperclip, X } from "lucide-react"
 import { useAgenticAI } from "../hooks/useAgenticAi"
 
 export const AgenticChat: React.FC = () => {
   const [input, setInput] = useState("")
   const [showPlan, setShowPlan] = useState(false)
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [dragActive, setDragActive] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { messages, loading, error, sendMessage, clearMessages } = useAgenticAI()
 
   const scrollToBottom = () => {
@@ -17,15 +20,57 @@ export const AgenticChat: React.FC = () => {
     scrollToBottom()
   }, [messages])
 
+  const handleFileSelect = (files: FileList | null) => {
+    if (files) {
+      const newFiles = Array.from(files).filter(file => 
+        file.type === 'application/pdf' || 
+        file.type === 'text/plain' || 
+        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        file.type === 'application/msword'
+      )
+      setSelectedFiles(prev => [...prev, ...newFiles])
+    }
+  }
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true)
+    } else if (e.type === "dragleave") {
+      setDragActive(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+    handleFileSelect(e.dataTransfer.files)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!input.trim() || loading) return
+    if ((!input.trim() && selectedFiles.length === 0) || loading) return
 
     const message = input.trim()
+    const files = selectedFiles
     setInput("")
+    setSelectedFiles([])
 
     try {
-      await sendMessage(message)
+      // If there are files, we need to upload them first
+      if (files.length > 0) {
+        // Add file upload message
+        const fileMessage = `Uploading ${files.length} file(s): ${files.map(f => f.name).join(', ')}`
+        await sendMessage(fileMessage + (message ? `\n\n${message}` : ''), files)
+      } else {
+        await sendMessage(message)
+      }
     } catch (err) {
       console.error("Failed to send message:", err)
     }
@@ -162,6 +207,62 @@ export const AgenticChat: React.FC = () => {
 
       {/* Input */}
       <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+        {/* File Upload Area */}
+        <div 
+          className={`mb-3 border-2 border-dashed rounded-lg p-4 transition-colors ${
+            dragActive 
+              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+              : 'border-gray-300 dark:border-gray-600'
+          } ${selectedFiles.length > 0 ? 'bg-gray-50 dark:bg-gray-700' : ''}`}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".pdf,.txt,.doc,.docx"
+            onChange={(e) => handleFileSelect(e.target.files)}
+            className="hidden"
+          />
+          
+          {selectedFiles.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Selected files:</p>
+              {selectedFiles.map((file, index) => (
+                <div key={index} className="flex items-center justify-between bg-white dark:bg-gray-800 p-2 rounded border">
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{file.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeFile(index)}
+                    className="text-red-500 hover:text-red-700 p-1"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Drag and drop files here, or{" "}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  click to select
+                </button>
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Supports PDF, TXT, DOC, DOCX files
+              </p>
+            </div>
+          )}
+        </div>
+
         <div className="flex space-x-2">
           <input
             type="text"
@@ -172,8 +273,16 @@ export const AgenticChat: React.FC = () => {
             disabled={loading}
           />
           <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            disabled={loading}
+          >
+            <Paperclip className="h-4 w-4" />
+          </button>
+          <button
             type="submit"
-            disabled={!input.trim() || loading}
+            disabled={(!input.trim() && selectedFiles.length === 0) || loading}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-md transition-colors flex items-center space-x-2"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
